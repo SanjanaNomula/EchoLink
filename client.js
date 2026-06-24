@@ -114,6 +114,16 @@ function setUserVolume(peerId, volume) {
     });
 }
 
+function setMyVolume(volume) {
+    if (!localStream) {
+        return;
+    }
+
+    localStream.getAudioTracks().forEach(track => {
+        track.enabled = volume > 0;
+    });
+}
+
 function getConnectedUsers() {
     return connectedUsers;
 }
