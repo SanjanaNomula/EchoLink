@@ -2,6 +2,7 @@ let peer;
 let localStream;
 const connectedUsers = [];
 const connectionTimes = {};
+const connectionHistory = [];
 
 const userConnectedCallbacks = [];
 const userDisconnectedCallbacks = [];
@@ -36,6 +37,14 @@ function notifyUserConnected(peerId) {
 function notifyUserDisconnected(peerId) {
     userDisconnectedCallbacks.forEach(callback => {
         callback(peerId);
+    });
+}
+
+function addToHistory(peerId, type) {
+    connectionHistory.push({
+        peerId,
+        type,
+        timestamp: new Date().toISOString()
     });
 }
 
@@ -75,6 +84,7 @@ function initializePeer() {
             call: call
         });
 
+        addToHistory(call.peer, "connected");
         notifyUserConnected(call.peer);
 
         call.on("close", () => {
@@ -88,6 +98,7 @@ function initializePeer() {
 
             delete connectionTimes[call.peer];
 
+            addToHistory(call.peer, "disconnected");
             notifyUserDisconnected(call.peer);
         });
 
@@ -142,6 +153,7 @@ callBtn.addEventListener("click", async () => {
         call: call
     });
 
+    addToHistory(targetPeerId, "connected");
     notifyUserConnected(targetPeerId);
 
     call.on("close", () => {
@@ -155,6 +167,7 @@ callBtn.addEventListener("click", async () => {
 
         delete connectionTimes[targetPeerId];
 
+        addToHistory(targetPeerId, "disconnected");
         notifyUserDisconnected(targetPeerId);
     });
 
@@ -169,14 +182,6 @@ callBtn.addEventListener("click", async () => {
 });
 
 function setUserVolume(peerId, volume) {
-    const user = connectedUsers.find(
-        user => user.peerId === peerId
-    );
-
-    if (!user || !user.call) {
-        return;
-    }
-
     const audioElements = document.querySelectorAll("audio");
 
     audioElements.forEach(audio => {
@@ -198,6 +203,10 @@ function getConnectedUsers() {
     return connectedUsers;
 }
 
+function getConnectionHistory() {
+    return connectionHistory;
+}
+
 function getConnectionDuration(peerId) {
     if (!connectionTimes[peerId]) {
         return 0;
@@ -211,6 +220,7 @@ function getConnectionDuration(peerId) {
 function getStats() {
     return {
         connectedUsers: connectedUsers.length,
+        totalHistoryEntries: connectionHistory.length,
         peerId: peer ? peer.id : null,
         status: statusText.textContent,
         version: "1.0.0"
@@ -236,6 +246,7 @@ window.EchoLink = {
     },
 
     getConnectedUsers,
+    getConnectionHistory,
     getConnectionDuration,
     getStats,
     onUserConnected,
