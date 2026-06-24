@@ -1,6 +1,7 @@
 let peer;
 let localStream;
 const connectedUsers = [];
+const connectionTimes = {};
 
 const connectBtn = document.getElementById("connectBtn");
 const peerIdInput = document.getElementById("peerId");
@@ -50,6 +51,8 @@ connectBtn.addEventListener("click", async () => {
     peer.on("call", (call) => {
         call.answer(localStream);
 
+        connectionTimes[call.peer] = Date.now();
+
         connectedUsers.push({
             peerId: call.peer,
             call: call
@@ -63,6 +66,8 @@ connectBtn.addEventListener("click", async () => {
             if (index !== -1) {
                 connectedUsers.splice(index, 1);
             }
+
+            delete connectionTimes[call.peer];
         });
 
         call.on("stream", (remoteStream) => {
@@ -97,6 +102,8 @@ callBtn.addEventListener("click", async () => {
 
     const call = peer.call(targetPeerId, stream);
 
+    connectionTimes[targetPeerId] = Date.now();
+
     connectedUsers.push({
         peerId: targetPeerId,
         call: call
@@ -110,6 +117,8 @@ callBtn.addEventListener("click", async () => {
         if (index !== -1) {
             connectedUsers.splice(index, 1);
         }
+
+        delete connectionTimes[targetPeerId];
     });
 
     call.on("stream", (remoteStream) => {
@@ -152,6 +161,16 @@ function getConnectedUsers() {
     return connectedUsers;
 }
 
+function getConnectionDuration(peerId) {
+    if (!connectionTimes[peerId]) {
+        return 0;
+    }
+
+    return Math.floor(
+        (Date.now() - connectionTimes[peerId]) / 1000
+    );
+}
+
 function getStats() {
     return {
         connectedUsers: connectedUsers.length,
@@ -172,6 +191,7 @@ window.EchoLink = {
     },
 
     getConnectedUsers,
+    getConnectionDuration,
     getStats,
     setUserVolume,
     setMyVolume
