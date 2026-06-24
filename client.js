@@ -1,5 +1,9 @@
+let peer;
+
 const connectBtn = document.getElementById("connectBtn");
 
 connectBtn.addEventListener("click", () => {
-    console.log("Connect button clicked");
+    peer = new Peer();
+
+    console.log("Peer initialized");
 });
