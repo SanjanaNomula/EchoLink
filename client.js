@@ -4,6 +4,7 @@ const connectedUsers = [];
 const connectionTimes = {};
 const connectionHistory = [];
 const connectionQuality = {};
+const blockedUsers = [];
 
 const userConnectedCallbacks = [];
 const userDisconnectedCallbacks = [];
@@ -84,6 +85,11 @@ function initializePeer() {
     });
 
     peer.on("call", (call) => {
+        if (blockedUsers.includes(call.peer)) {
+            call.close();
+            return;
+        }
+
         call.answer(localStream);
 
         connectionTimes[call.peer] = Date.now();
@@ -120,8 +126,6 @@ function initializePeer() {
             audio.volume = 1;
             audio.play();
         });
-
-        console.log("Incoming call answered");
     });
 }
 
@@ -133,10 +137,7 @@ connectBtn.addEventListener("click", async () => {
     }
 
     statusText.textContent = "Connecting...";
-
     initializePeer();
-
-    console.log("Peer initialized");
 });
 
 callBtn.addEventListener("click", async () => {
@@ -149,6 +150,11 @@ callBtn.addEventListener("click", async () => {
 
     if (!targetPeerId) {
         statusText.textContent = "Enter target peer ID";
+        return;
+    }
+
+    if (blockedUsers.includes(targetPeerId)) {
+        statusText.textContent = "User is blocked";
         return;
     }
 
@@ -192,22 +198,34 @@ callBtn.addEventListener("click", async () => {
         audio.volume = 1;
         audio.play();
     });
-
-    console.log("Calling:", targetPeerId);
 });
 
-function setUserVolume(peerId, volume) {
-    const audioElements = document.querySelectorAll("audio");
+function blockUser(peerId) {
+    if (!blockedUsers.includes(peerId)) {
+        blockedUsers.push(peerId);
+    }
+}
 
-    audioElements.forEach(audio => {
+function unblockUser(peerId) {
+    const index = blockedUsers.indexOf(peerId);
+
+    if (index !== -1) {
+        blockedUsers.splice(index, 1);
+    }
+}
+
+function getBlockedUsers() {
+    return blockedUsers;
+}
+
+function setUserVolume(peerId, volume) {
+    document.querySelectorAll("audio").forEach(audio => {
         audio.volume = volume;
     });
 }
 
 function setMyVolume(volume) {
-    if (!localStream) {
-        return;
-    }
+    if (!localStream) return;
 
     localStream.getAudioTracks().forEach(track => {
         track.enabled = volume > 0;
@@ -239,6 +257,7 @@ function getConnectionDuration(peerId) {
 function getStats() {
     return {
         connectedUsers: connectedUsers.length,
+        blockedUsers: blockedUsers.length,
         totalHistoryEntries: connectionHistory.length,
         activeQualityEntries: Object.keys(connectionQuality).length,
         peerId: peer ? peer.id : null,
@@ -265,13 +284,19 @@ window.EchoLink = {
         callBtn.click();
     },
 
+    blockUser,
+    unblockUser,
+    getBlockedUsers,
+
     getConnectedUsers,
     getConnectionHistory,
     getConnectionQuality,
     getConnectionDuration,
     getStats,
+
     onUserConnected,
     onUserDisconnected,
+
     setUserVolume,
     setMyVolume
 };
