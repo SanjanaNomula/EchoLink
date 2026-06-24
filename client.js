@@ -127,3 +127,14 @@ function setMyVolume(volume) {
 function getConnectedUsers() {
     return connectedUsers;
 }
+
+window.EchoLink = {
+    connect: () => connectBtn.click(),
+    callUser: (peerId) => {
+        targetPeerIdInput.value = peerId;
+        callBtn.click();
+    },
+    getConnectedUsers,
+    setUserVolume,
+    setMyVolume
+};
