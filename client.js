@@ -4,6 +4,9 @@ const connectBtn = document.getElementById("connectBtn");
 const peerIdInput = document.getElementById("peerId");
 const statusText = document.getElementById("status");
 
+const targetPeerIdInput = document.getElementById("targetPeerId");
+const callBtn = document.getElementById("callBtn");
+
 async function setupMicrophone() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -21,12 +24,18 @@ connectBtn.addEventListener("click", async () => {
     const stream = await setupMicrophone();
 
     statusText.textContent = "Connecting...";
-    
+
     peer = new Peer(peerIdInput.value);
 
     peer.on("open", () => {
-    statusText.textContent = "Connected";
-});
+        statusText.textContent = "Connected";
+    });
 
     console.log("Peer initialized");
+});
+
+callBtn.addEventListener("click", () => {
+    const targetPeerId = targetPeerIdInput.value;
+
+    console.log("Calling:", targetPeerId);
 });
