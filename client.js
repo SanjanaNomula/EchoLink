@@ -1,4 +1,5 @@
 let peer;
+let localStream;
 
 const connectBtn = document.getElementById("connectBtn");
 const peerIdInput = document.getElementById("peerId");
@@ -21,7 +22,7 @@ async function setupMicrophone() {
 }
 
 connectBtn.addEventListener("click", async () => {
-    const stream = await setupMicrophone();
+    localStream = await setupMicrophone();
 
     statusText.textContent = "Connecting...";
 
@@ -29,6 +30,12 @@ connectBtn.addEventListener("click", async () => {
 
     peer.on("open", () => {
         statusText.textContent = "Connected";
+    });
+
+    peer.on("call", (call) => {
+        call.answer(localStream);
+
+        console.log("Incoming call answered");
     });
 
     console.log("Peer initialized");
@@ -41,8 +48,7 @@ callBtn.addEventListener("click", async () => {
         audio: true
     });
 
-    const call = peer.call(targetPeerId, stream);
+    peer.call(targetPeerId, stream);
 
     console.log("Calling:", targetPeerId);
-});
 });
