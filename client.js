@@ -34,8 +34,15 @@ connectBtn.addEventListener("click", async () => {
     console.log("Peer initialized");
 });
 
-callBtn.addEventListener("click", () => {
+callBtn.addEventListener("click", async () => {
     const targetPeerId = targetPeerIdInput.value;
 
+    const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true
+    });
+
+    const call = peer.call(targetPeerId, stream);
+
     console.log("Calling:", targetPeerId);
+});
 });
