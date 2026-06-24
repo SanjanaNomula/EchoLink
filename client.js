@@ -5,6 +5,7 @@ const connectionTimes = {};
 const connectionHistory = [];
 const connectionQuality = {};
 const blockedUsers = [];
+const callRecords = [];
 
 const userConnectedCallbacks = [];
 const userDisconnectedCallbacks = [];
@@ -58,6 +59,29 @@ function updateConnectionQuality(peerId) {
     };
 }
 
+function startCallRecord(peerId) {
+    callRecords.push({
+        peerId,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        duration: 0
+    });
+}
+
+function endCallRecord(peerId) {
+    const record = [...callRecords]
+        .reverse()
+        .find(r => r.peerId === peerId && !r.endedAt);
+
+    if (!record) return;
+
+    record.endedAt = new Date().toISOString();
+
+    record.duration = Math.floor(
+        (new Date(record.endedAt) - new Date(record.startedAt)) / 1000
+    );
+}
+
 function initializePeer() {
     peer = new Peer(peerIdInput.value);
 
@@ -93,6 +117,7 @@ function initializePeer() {
         call.answer(localStream);
 
         connectionTimes[call.peer] = Date.now();
+        startCallRecord(call.peer);
 
         connectedUsers.push({
             peerId: call.peer,
@@ -115,6 +140,8 @@ function initializePeer() {
 
             delete connectionTimes[call.peer];
             delete connectionQuality[call.peer];
+
+            endCallRecord(call.peer);
 
             addToHistory(call.peer, "disconnected");
             notifyUserDisconnected(call.peer);
@@ -165,6 +192,7 @@ callBtn.addEventListener("click", async () => {
     const call = peer.call(targetPeerId, stream);
 
     connectionTimes[targetPeerId] = Date.now();
+    startCallRecord(targetPeerId);
 
     connectedUsers.push({
         peerId: targetPeerId,
@@ -187,6 +215,8 @@ callBtn.addEventListener("click", async () => {
 
         delete connectionTimes[targetPeerId];
         delete connectionQuality[targetPeerId];
+
+        endCallRecord(targetPeerId);
 
         addToHistory(targetPeerId, "disconnected");
         notifyUserDisconnected(targetPeerId);
@@ -216,6 +246,10 @@ function unblockUser(peerId) {
 
 function getBlockedUsers() {
     return blockedUsers;
+}
+
+function getCallRecords() {
+    return callRecords;
 }
 
 function setUserVolume(peerId, volume) {
@@ -259,6 +293,7 @@ function getStats() {
         connectedUsers: connectedUsers.length,
         blockedUsers: blockedUsers.length,
         totalHistoryEntries: connectionHistory.length,
+        totalCallRecords: callRecords.length,
         activeQualityEntries: Object.keys(connectionQuality).length,
         peerId: peer ? peer.id : null,
         status: statusText.textContent,
@@ -292,6 +327,7 @@ window.EchoLink = {
     getConnectionHistory,
     getConnectionQuality,
     getConnectionDuration,
+    getCallRecords,
     getStats,
 
     onUserConnected,
