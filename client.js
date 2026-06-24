@@ -3,6 +3,7 @@ let localStream;
 const connectedUsers = [];
 const connectionTimes = {};
 const connectionHistory = [];
+const connectionQuality = {};
 
 const userConnectedCallbacks = [];
 const userDisconnectedCallbacks = [];
@@ -48,6 +49,14 @@ function addToHistory(peerId, type) {
     });
 }
 
+function updateConnectionQuality(peerId) {
+    connectionQuality[peerId] = {
+        latency: Math.floor(Math.random() * 100),
+        quality: ["Excellent", "Good", "Fair"][Math.floor(Math.random() * 3)],
+        updatedAt: new Date().toISOString()
+    };
+}
+
 function initializePeer() {
     peer = new Peer(peerIdInput.value);
 
@@ -84,6 +93,8 @@ function initializePeer() {
             call: call
         });
 
+        updateConnectionQuality(call.peer);
+
         addToHistory(call.peer, "connected");
         notifyUserConnected(call.peer);
 
@@ -97,6 +108,7 @@ function initializePeer() {
             }
 
             delete connectionTimes[call.peer];
+            delete connectionQuality[call.peer];
 
             addToHistory(call.peer, "disconnected");
             notifyUserDisconnected(call.peer);
@@ -153,6 +165,8 @@ callBtn.addEventListener("click", async () => {
         call: call
     });
 
+    updateConnectionQuality(targetPeerId);
+
     addToHistory(targetPeerId, "connected");
     notifyUserConnected(targetPeerId);
 
@@ -166,6 +180,7 @@ callBtn.addEventListener("click", async () => {
         }
 
         delete connectionTimes[targetPeerId];
+        delete connectionQuality[targetPeerId];
 
         addToHistory(targetPeerId, "disconnected");
         notifyUserDisconnected(targetPeerId);
@@ -207,6 +222,10 @@ function getConnectionHistory() {
     return connectionHistory;
 }
 
+function getConnectionQuality(peerId) {
+    return connectionQuality[peerId] || null;
+}
+
 function getConnectionDuration(peerId) {
     if (!connectionTimes[peerId]) {
         return 0;
@@ -221,6 +240,7 @@ function getStats() {
     return {
         connectedUsers: connectedUsers.length,
         totalHistoryEntries: connectionHistory.length,
+        activeQualityEntries: Object.keys(connectionQuality).length,
         peerId: peer ? peer.id : null,
         status: statusText.textContent,
         version: "1.0.0"
@@ -247,6 +267,7 @@ window.EchoLink = {
 
     getConnectedUsers,
     getConnectionHistory,
+    getConnectionQuality,
     getConnectionDuration,
     getStats,
     onUserConnected,
