@@ -1,11 +1,14 @@
 let peer;
 let localStream;
+let myStatus = "Online";
+
 const connectedUsers = [];
 const connectionTimes = {};
 const connectionHistory = [];
 const connectionQuality = {};
 const blockedUsers = [];
 const callRecords = [];
+const userPresence = {};
 
 const userConnectedCallbacks = [];
 const userDisconnectedCallbacks = [];
@@ -59,6 +62,13 @@ function updateConnectionQuality(peerId) {
     };
 }
 
+function updatePresence(peerId, status) {
+    userPresence[peerId] = {
+        status,
+        updatedAt: new Date().toISOString()
+    };
+}
+
 function startCallRecord(peerId) {
     callRecords.push({
         peerId,
@@ -87,6 +97,7 @@ function initializePeer() {
 
     peer.on("open", () => {
         statusText.textContent = "Connected";
+        updatePresence(peer.id, "Online");
     });
 
     peer.on("error", (error) => {
@@ -96,6 +107,7 @@ function initializePeer() {
 
     peer.on("disconnected", () => {
         statusText.textContent = "Reconnecting...";
+        updatePresence(peer.id, "Away");
 
         setTimeout(() => {
             if (peer) {
@@ -106,6 +118,7 @@ function initializePeer() {
 
     peer.on("close", () => {
         statusText.textContent = "Connection Closed";
+        updatePresence(peer.id, "Offline");
     });
 
     peer.on("call", (call) => {
@@ -125,6 +138,7 @@ function initializePeer() {
         });
 
         updateConnectionQuality(call.peer);
+        updatePresence(call.peer, "Online");
 
         addToHistory(call.peer, "connected");
         notifyUserConnected(call.peer);
@@ -141,6 +155,7 @@ function initializePeer() {
             delete connectionTimes[call.peer];
             delete connectionQuality[call.peer];
 
+            updatePresence(call.peer, "Offline");
             endCallRecord(call.peer);
 
             addToHistory(call.peer, "disconnected");
@@ -200,6 +215,7 @@ callBtn.addEventListener("click", async () => {
     });
 
     updateConnectionQuality(targetPeerId);
+    updatePresence(targetPeerId, "Online");
 
     addToHistory(targetPeerId, "connected");
     notifyUserConnected(targetPeerId);
@@ -216,6 +232,7 @@ callBtn.addEventListener("click", async () => {
         delete connectionTimes[targetPeerId];
         delete connectionQuality[targetPeerId];
 
+        updatePresence(targetPeerId, "Offline");
         endCallRecord(targetPeerId);
 
         addToHistory(targetPeerId, "disconnected");
@@ -229,6 +246,22 @@ callBtn.addEventListener("click", async () => {
         audio.play();
     });
 });
+
+function setStatus(status) {
+    myStatus = status;
+
+    if (peer) {
+        updatePresence(peer.id, status);
+    }
+}
+
+function getStatus() {
+    return myStatus;
+}
+
+function getPresence(peerId) {
+    return userPresence[peerId] || null;
+}
 
 function blockUser(peerId) {
     if (!blockedUsers.includes(peerId)) {
@@ -296,7 +329,7 @@ function getStats() {
         totalCallRecords: callRecords.length,
         activeQualityEntries: Object.keys(connectionQuality).length,
         peerId: peer ? peer.id : null,
-        status: statusText.textContent,
+        status: myStatus,
         version: "1.0.0"
     };
 }
@@ -318,6 +351,10 @@ window.EchoLink = {
         targetPeerIdInput.value = peerId;
         callBtn.click();
     },
+
+    setStatus,
+    getStatus,
+    getPresence,
 
     blockUser,
     unblockUser,
