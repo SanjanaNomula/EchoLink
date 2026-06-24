@@ -39,15 +39,7 @@ function notifyUserDisconnected(peerId) {
     });
 }
 
-connectBtn.addEventListener("click", async () => {
-    localStream = await setupMicrophone();
-
-    if (!localStream) {
-        return;
-    }
-
-    statusText.textContent = "Connecting...";
-
+function initializePeer() {
     peer = new Peer(peerIdInput.value);
 
     peer.on("open", () => {
@@ -60,7 +52,17 @@ connectBtn.addEventListener("click", async () => {
     });
 
     peer.on("disconnected", () => {
-        statusText.textContent = "Disconnected";
+        statusText.textContent = "Reconnecting...";
+
+        setTimeout(() => {
+            if (peer) {
+                peer.reconnect();
+            }
+        }, 3000);
+    });
+
+    peer.on("close", () => {
+        statusText.textContent = "Connection Closed";
     });
 
     peer.on("call", (call) => {
@@ -98,6 +100,18 @@ connectBtn.addEventListener("click", async () => {
 
         console.log("Incoming call answered");
     });
+}
+
+connectBtn.addEventListener("click", async () => {
+    localStream = await setupMicrophone();
+
+    if (!localStream) {
+        return;
+    }
+
+    statusText.textContent = "Connecting...";
+
+    initializePeer();
 
     console.log("Peer initialized");
 });
