@@ -153,12 +153,18 @@ function getConnectedUsers() {
 }
 
 window.EchoLink = {
+    version: "1.0.0",
+
     connect: () => connectBtn.click(),
+
     callUser: (peerId) => {
         targetPeerIdInput.value = peerId;
         callBtn.click();
     },
+
     getConnectedUsers,
     setUserVolume,
     setMyVolume
 };
+
+console.log(`EchoLink v${EchoLink.version} loaded`);
