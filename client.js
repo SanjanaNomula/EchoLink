@@ -33,10 +33,16 @@ connectBtn.addEventListener("click", async () => {
     });
 
     peer.on("call", (call) => {
-        call.answer(localStream);
+    call.answer(localStream);
 
-        console.log("Incoming call answered");
+    call.on("stream", (remoteStream) => {
+        const audio = new Audio();
+        audio.srcObject = remoteStream;
+        audio.play();
     });
+
+    console.log("Incoming call answered");
+});
 
     console.log("Peer initialized");
 });
@@ -48,7 +54,13 @@ callBtn.addEventListener("click", async () => {
         audio: true
     });
 
-    peer.call(targetPeerId, stream);
+    const call = peer.call(targetPeerId, stream);
+
+call.on("stream", (remoteStream) => {
+    const audio = new Audio();
+    audio.srcObject = remoteStream;
+    audio.play();
+});
 
     console.log("Calling:", targetPeerId);
 });
