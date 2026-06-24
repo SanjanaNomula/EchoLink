@@ -3,6 +3,9 @@ let localStream;
 const connectedUsers = [];
 const connectionTimes = {};
 
+const userConnectedCallbacks = [];
+const userDisconnectedCallbacks = [];
+
 const connectBtn = document.getElementById("connectBtn");
 const peerIdInput = document.getElementById("peerId");
 const statusText = document.getElementById("status");
@@ -22,6 +25,18 @@ async function setupMicrophone() {
         statusText.textContent = "Microphone access denied";
         console.error("Microphone access denied", error);
     }
+}
+
+function notifyUserConnected(peerId) {
+    userConnectedCallbacks.forEach(callback => {
+        callback(peerId);
+    });
+}
+
+function notifyUserDisconnected(peerId) {
+    userDisconnectedCallbacks.forEach(callback => {
+        callback(peerId);
+    });
 }
 
 connectBtn.addEventListener("click", async () => {
@@ -58,6 +73,8 @@ connectBtn.addEventListener("click", async () => {
             call: call
         });
 
+        notifyUserConnected(call.peer);
+
         call.on("close", () => {
             const index = connectedUsers.findIndex(
                 user => user.peerId === call.peer
@@ -68,6 +85,8 @@ connectBtn.addEventListener("click", async () => {
             }
 
             delete connectionTimes[call.peer];
+
+            notifyUserDisconnected(call.peer);
         });
 
         call.on("stream", (remoteStream) => {
@@ -109,6 +128,8 @@ callBtn.addEventListener("click", async () => {
         call: call
     });
 
+    notifyUserConnected(targetPeerId);
+
     call.on("close", () => {
         const index = connectedUsers.findIndex(
             user => user.peerId === targetPeerId
@@ -119,6 +140,8 @@ callBtn.addEventListener("click", async () => {
         }
 
         delete connectionTimes[targetPeerId];
+
+        notifyUserDisconnected(targetPeerId);
     });
 
     call.on("stream", (remoteStream) => {
@@ -180,6 +203,14 @@ function getStats() {
     };
 }
 
+function onUserConnected(callback) {
+    userConnectedCallbacks.push(callback);
+}
+
+function onUserDisconnected(callback) {
+    userDisconnectedCallbacks.push(callback);
+}
+
 window.EchoLink = {
     version: "1.0.0",
 
@@ -193,6 +224,8 @@ window.EchoLink = {
     getConnectedUsers,
     getConnectionDuration,
     getStats,
+    onUserConnected,
+    onUserDisconnected,
     setUserVolume,
     setMyVolume
 };
