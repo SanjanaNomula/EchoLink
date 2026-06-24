@@ -152,6 +152,15 @@ function getConnectedUsers() {
     return connectedUsers;
 }
 
+function getStats() {
+    return {
+        connectedUsers: connectedUsers.length,
+        peerId: peer ? peer.id : null,
+        status: statusText.textContent,
+        version: "1.0.0"
+    };
+}
+
 window.EchoLink = {
     version: "1.0.0",
 
@@ -163,6 +172,7 @@ window.EchoLink = {
     },
 
     getConnectedUsers,
+    getStats,
     setUserVolume,
     setMyVolume
 };
