@@ -19,7 +19,39 @@
     </button>
 
     <p id="status">Disconnected</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EchoLink</title>
 
+    <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+    <h1>EchoLink Voice Chat</h1>
+
+    <p>Peer ID:</p>
+    <input type="text" id="peerId">
+
+    <button id="connectBtn">
+        Connect
+    </button>
+
+    <p id="status">Disconnected</p>
+
+    <p>Target Peer ID:</p>
+    <input type="text" id="targetPeerId">
+
+    <button id="callBtn">
+        Call User
+    </button>
+
+    <script src="client.js"></script>
+
+</body>
+</html>
     <script src="client.js"></script>
 
 </body>
