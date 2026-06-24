@@ -54,6 +54,7 @@ connectBtn.addEventListener("click", async () => {
         call.on("stream", (remoteStream) => {
             const audio = new Audio();
             audio.srcObject = remoteStream;
+            audio.volume = 1;
             audio.play();
         });
 
@@ -90,11 +91,28 @@ callBtn.addEventListener("click", async () => {
     call.on("stream", (remoteStream) => {
         const audio = new Audio();
         audio.srcObject = remoteStream;
+        audio.volume = 1;
         audio.play();
     });
 
     console.log("Calling:", targetPeerId);
 });
+
+function setUserVolume(peerId, volume) {
+    const user = connectedUsers.find(
+        user => user.peerId === peerId
+    );
+
+    if (!user || !user.call) {
+        return;
+    }
+
+    const audioElements = document.querySelectorAll("audio");
+
+    audioElements.forEach(audio => {
+        audio.volume = volume;
+    });
+}
 
 function getConnectedUsers() {
     return connectedUsers;
