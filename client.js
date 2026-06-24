@@ -1,5 +1,6 @@
 let peer;
 let localStream;
+const connectedUsers = [];
 
 const connectBtn = document.getElementById("connectBtn");
 const peerIdInput = document.getElementById("peerId");
@@ -34,7 +35,12 @@ connectBtn.addEventListener("click", async () => {
 
     peer.on("call", (call) => {
     call.answer(localStream);
-
+        
+    connectedUsers.push({
+    peerId: call.peer,
+    call: call
+});
+        
     call.on("stream", (remoteStream) => {
         const audio = new Audio();
         audio.srcObject = remoteStream;
@@ -56,6 +62,11 @@ callBtn.addEventListener("click", async () => {
 
     const call = peer.call(targetPeerId, stream);
 
+    connectedUsers.push({
+    peerId: targetPeerId,
+    call: call
+}); 
+    
 call.on("stream", (remoteStream) => {
     const audio = new Audio();
     audio.srcObject = remoteStream;
@@ -64,3 +75,7 @@ call.on("stream", (remoteStream) => {
 
     console.log("Calling:", targetPeerId);
 });
+
+function getConnectedUsers() {
+    return connectedUsers;
+}
