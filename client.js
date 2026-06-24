@@ -18,6 +18,7 @@ async function setupMicrophone() {
         console.log("Microphone access granted");
         return stream;
     } catch (error) {
+        statusText.textContent = "Microphone access denied";
         console.error("Microphone access denied", error);
     }
 }
@@ -25,12 +26,25 @@ async function setupMicrophone() {
 connectBtn.addEventListener("click", async () => {
     localStream = await setupMicrophone();
 
+    if (!localStream) {
+        return;
+    }
+
     statusText.textContent = "Connecting...";
 
     peer = new Peer(peerIdInput.value);
 
     peer.on("open", () => {
         statusText.textContent = "Connected";
+    });
+
+    peer.on("error", (error) => {
+        statusText.textContent = "Connection Error";
+        console.error(error);
+    });
+
+    peer.on("disconnected", () => {
+        statusText.textContent = "Disconnected";
     });
 
     peer.on("call", (call) => {
@@ -65,7 +79,17 @@ connectBtn.addEventListener("click", async () => {
 });
 
 callBtn.addEventListener("click", async () => {
+    if (!peer) {
+        statusText.textContent = "Connect first";
+        return;
+    }
+
     const targetPeerId = targetPeerIdInput.value;
+
+    if (!targetPeerId) {
+        statusText.textContent = "Enter target peer ID";
+        return;
+    }
 
     const stream = await navigator.mediaDevices.getUserMedia({
         audio: true
