@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EchoLink Example</title>
+
+    <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+    <script src="../client.js"></script>
+</head>
+<body>
+
+    <h1>EchoLink Example</h1>
+
+    <button onclick="EchoLink.connect()">
+        Connect
+    </button>
+
+    <button onclick="EchoLink.setMyVolume(0)">
+        Mute
+    </button>
+
+    <button onclick="console.log(EchoLink.getStats())">
+        Show Stats
+    </button>
+
+</body>
+</html>
