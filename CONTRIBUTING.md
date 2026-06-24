@@ -10,6 +10,7 @@ Thank you for considering contributing to EchoLink.
 4. Commit your changes
 5. Open a pull request
 
+
 ## Coding Standards
 
 - Use clear and descriptive variable names
