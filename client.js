@@ -34,21 +34,31 @@ connectBtn.addEventListener("click", async () => {
     });
 
     peer.on("call", (call) => {
-    call.answer(localStream);
-        
-    connectedUsers.push({
-    peerId: call.peer,
-    call: call
-});
-        
-    call.on("stream", (remoteStream) => {
-        const audio = new Audio();
-        audio.srcObject = remoteStream;
-        audio.play();
-    });
+        call.answer(localStream);
 
-    console.log("Incoming call answered");
-});
+        connectedUsers.push({
+            peerId: call.peer,
+            call: call
+        });
+
+        call.on("close", () => {
+            const index = connectedUsers.findIndex(
+                user => user.peerId === call.peer
+            );
+
+            if (index !== -1) {
+                connectedUsers.splice(index, 1);
+            }
+        });
+
+        call.on("stream", (remoteStream) => {
+            const audio = new Audio();
+            audio.srcObject = remoteStream;
+            audio.play();
+        });
+
+        console.log("Incoming call answered");
+    });
 
     console.log("Peer initialized");
 });
@@ -63,15 +73,25 @@ callBtn.addEventListener("click", async () => {
     const call = peer.call(targetPeerId, stream);
 
     connectedUsers.push({
-    peerId: targetPeerId,
-    call: call
-}); 
-    
-call.on("stream", (remoteStream) => {
-    const audio = new Audio();
-    audio.srcObject = remoteStream;
-    audio.play();
-});
+        peerId: targetPeerId,
+        call: call
+    });
+
+    call.on("close", () => {
+        const index = connectedUsers.findIndex(
+            user => user.peerId === targetPeerId
+        );
+
+        if (index !== -1) {
+            connectedUsers.splice(index, 1);
+        }
+    });
+
+    call.on("stream", (remoteStream) => {
+        const audio = new Audio();
+        audio.srcObject = remoteStream;
+        audio.play();
+    });
 
     console.log("Calling:", targetPeerId);
 });
