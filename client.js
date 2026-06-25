@@ -9,6 +9,7 @@ const connectionQuality = {};
 const blockedUsers = [];
 const callRecords = [];
 const userPresence = {};
+const remoteAudio = {};
 
 const userConnectedCallbacks = [];
 const userDisconnectedCallbacks = [];
