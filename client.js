@@ -76,6 +76,23 @@ function startCallRecord(peerId) {
     });
 }
 
+function endCallRecord(peerId) {
+    const record = [...callRecords]
+        .reverse()
+        .find(record => record.peerId === peerId && !record.endedAt);
+
+    if (!record) {
+        return;
+    }
+
+    record.endedAt = new Date().toISOString();
+
+    record.duration = Math.floor(
+        (new Date(record.endedAt) - new Date(record.startedAt)) / 1000
+    );
+}
+
+
 function initializePeer() {
     peer = new Peer(peerIdInput.value.trim());
 
@@ -94,7 +111,7 @@ function initializePeer() {
         updatePresence(peer.id, "Away");
 
         setTimeout(() => {
-            if (peer) {
+            if (peer && !peer.destroyed) {
                 peer.reconnect();
             }
         }, 3000);
@@ -112,7 +129,12 @@ function initializePeer() {
             return;
         }
 
-        call.answer(localStream);
+        if (localStream) {
+           call.answer(localStream);
+        } else {
+               call.close();
+               return;
+        }
 
         connectionTimes[call.peer] = Date.now();
         startCallRecord(call.peer);
@@ -169,6 +191,16 @@ function initializePeer() {
         });
     });
 }
+connectBtn.addEventListener("click", async () => {
+    localStream = await setupMicrophone();
+
+    if (!localStream) {
+        return;
+    }
+
+    statusText.textContent = "Connecting...";
+    initializePeer();
+});
 
 callBtn.addEventListener("click", async () => {
     if (!peer) {
@@ -189,7 +221,12 @@ callBtn.addEventListener("click", async () => {
     }
 
     // Reuse the microphone stream instead of requesting it again
-    const call = peer.call(targetPeerId, localStream);
+    if (!localStream) {
+    statusText.textContent = "Microphone not available";
+    return;
+}
+
+const call = peer.call(targetPeerId, localStream);
 
     connectionTimes[targetPeerId] = Date.now();
     startCallRecord(targetPeerId);
@@ -243,14 +280,6 @@ callBtn.addEventListener("click", async () => {
         notifyUserDisconnected(targetPeerId);
     });
 });
-
-function setStatus(status) {
-    myStatus = status;
-
-    if (peer) {
-        updatePresence(peer.id, status);
-    }
-}
 
 function setStatus(status) {
     myStatus = status;
