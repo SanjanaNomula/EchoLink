@@ -154,6 +154,12 @@ function initializePeer() {
             }
 
             delete connectionTimes[call.peer];
+            if (remoteAudio[call.peer]) {
+    remoteAudio[call.peer].pause();
+    remoteAudio[call.peer].srcObject = null;
+    delete remoteAudio[call.peer];
+}
+            
             delete connectionQuality[call.peer];
 
             updatePresence(call.peer, "Offline");
@@ -164,11 +170,26 @@ function initializePeer() {
         });
 
         call.on("stream", (remoteStream) => {
-            const audio = new Audio();
-            audio.srcObject = remoteStream;
-            audio.volume = 1;
-            audio.play();
-        });
+    const audio = new Audio();
+
+    audio.srcObject = remoteStream;
+    audio.autoplay = true;
+    audio.volume = 1;
+
+    call.on("stream", (remoteStream) => {
+    const audio = new Audio();
+
+    audio.srcObject = remoteStream;
+    audio.autoplay = true;
+    audio.volume = 1;
+
+    remoteAudio[call.peer] = audio;
+
+    audio.play();
+});
+
+    audio.play();
+});
     });
 }
 
@@ -221,31 +242,42 @@ callBtn.addEventListener("click", async () => {
     addToHistory(targetPeerId, "connected");
     notifyUserConnected(targetPeerId);
 
-    call.on("close", () => {
-        const index = connectedUsers.findIndex(
-            user => user.peerId === targetPeerId
-        );
+ call.on("close", () => {
+    const index = connectedUsers.findIndex(
+        user => user.peerId === call.peer
+    );
 
-        if (index !== -1) {
-            connectedUsers.splice(index, 1);
-        }
+    if (index !== -1) {
+        connectedUsers.splice(index, 1);
+    }
 
-        delete connectionTimes[targetPeerId];
-        delete connectionQuality[targetPeerId];
+    if (remoteAudio[call.peer]) {
+        remoteAudio[call.peer].pause();
+        remoteAudio[call.peer].srcObject = null;
+        delete remoteAudio[call.peer];
+    }
 
-        updatePresence(targetPeerId, "Offline");
-        endCallRecord(targetPeerId);
+    delete connectionTimes[call.peer];
+    delete connectionQuality[call.peer];
 
-        addToHistory(targetPeerId, "disconnected");
-        notifyUserDisconnected(targetPeerId);
-    });
+    updatePresence(call.peer, "Offline");
+    endCallRecord(call.peer);
 
-    call.on("stream", (remoteStream) => {
-        const audio = new Audio();
-        audio.srcObject = remoteStream;
-        audio.volume = 1;
-        audio.play();
-    });
+    addToHistory(call.peer, "disconnected");
+    notifyUserDisconnected(call.peer);
+});
+
+   call.on("stream", (remoteStream) => {
+    const audio = new Audio();
+
+    audio.srcObject = remoteStream;
+    audio.autoplay = true;
+    audio.volume = 1;
+
+    remoteAudio[call.peer] = audio;
+
+    audio.play();
+});
 });
 
 function setStatus(status) {
@@ -287,9 +319,13 @@ function getCallRecords() {
 }
 
 function setUserVolume(peerId, volume) {
-    document.querySelectorAll("audio").forEach(audio => {
-        audio.volume = volume;
-    });
+    const audio = remoteAudio[peerId];
+
+    if (!audio) {
+        return;
+    }
+
+    audio.volume = Math.max(0, Math.min(1, volume));
 }
 
 function setMyVolume(volume) {
