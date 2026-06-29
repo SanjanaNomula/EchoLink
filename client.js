@@ -77,7 +77,7 @@ function startCallRecord(peerId) {
 }
 
 function initializePeer() {
-    peer = new Peer(peerIdInput.value);
+    peer = new Peer(peerIdInput.value.trim());
 
     peer.on("open", () => {
         statusText.textContent = "Connected";
@@ -169,50 +169,6 @@ function initializePeer() {
         });
     });
 }
-            
-            delete connectionQuality[call.peer];
-
-            updatePresence(call.peer, "Offline");
-            endCallRecord(call.peer);
-
-            addToHistory(call.peer, "disconnected");
-            notifyUserDisconnected(call.peer);
-        });
-
-        call.on("stream", (remoteStream) => {
-    const audio = new Audio();
-
-    audio.srcObject = remoteStream;
-    audio.autoplay = true;
-    audio.volume = 1;
-
-    call.on("stream", (remoteStream) => {
-    const audio = new Audio();
-
-    audio.srcObject = remoteStream;
-    audio.autoplay = true;
-    audio.volume = 1;
-
-    remoteAudio[call.peer] = audio;
-
-    audio.play();
-});
-
-    audio.play();
-});
-    });
-}
-
-connectBtn.addEventListener("click", async () => {
-    localStream = await setupMicrophone();
-
-    if (!localStream) {
-        return;
-    }
-
-    statusText.textContent = "Connecting...";
-    initializePeer();
-});
 
 callBtn.addEventListener("click", async () => {
     if (!peer) {
@@ -220,7 +176,7 @@ callBtn.addEventListener("click", async () => {
         return;
     }
 
-    const targetPeerId = targetPeerIdInput.value;
+    const targetPeerId = targetPeerIdInput.value.trim();
 
     if (!targetPeerId) {
         statusText.textContent = "Enter target peer ID";
@@ -232,11 +188,8 @@ callBtn.addEventListener("click", async () => {
         return;
     }
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true
-    });
-
-    const call = peer.call(targetPeerId, stream);
+    // Reuse the microphone stream instead of requesting it again
+    const call = peer.call(targetPeerId, localStream);
 
     connectionTimes[targetPeerId] = Date.now();
     startCallRecord(targetPeerId);
@@ -252,43 +205,52 @@ callBtn.addEventListener("click", async () => {
     addToHistory(targetPeerId, "connected");
     notifyUserConnected(targetPeerId);
 
- call.on("close", () => {
-    const index = connectedUsers.findIndex(
-        user => user.peerId === call.peer
-    );
+    call.on("stream", (remoteStream) => {
+        const audio = new Audio();
 
-    if (index !== -1) {
-        connectedUsers.splice(index, 1);
+        audio.srcObject = remoteStream;
+        audio.autoplay = true;
+        audio.volume = 1;
+
+        remoteAudio[targetPeerId] = audio;
+
+        audio.play();
+    });
+
+    call.on("close", () => {
+
+        const index = connectedUsers.findIndex(
+            user => user.peerId === targetPeerId
+        );
+
+        if (index !== -1) {
+            connectedUsers.splice(index, 1);
+        }
+
+        if (remoteAudio[targetPeerId]) {
+            remoteAudio[targetPeerId].pause();
+            remoteAudio[targetPeerId].srcObject = null;
+            delete remoteAudio[targetPeerId];
+        }
+
+        delete connectionTimes[targetPeerId];
+        delete connectionQuality[targetPeerId];
+
+        updatePresence(targetPeerId, "Offline");
+        endCallRecord(targetPeerId);
+
+        addToHistory(targetPeerId, "disconnected");
+        notifyUserDisconnected(targetPeerId);
+    });
+});
+
+function setStatus(status) {
+    myStatus = status;
+
+    if (peer) {
+        updatePresence(peer.id, status);
     }
-
-    if (remoteAudio[call.peer]) {
-        remoteAudio[call.peer].pause();
-        remoteAudio[call.peer].srcObject = null;
-        delete remoteAudio[call.peer];
-    }
-
-    delete connectionTimes[call.peer];
-    delete connectionQuality[call.peer];
-
-    updatePresence(call.peer, "Offline");
-    endCallRecord(call.peer);
-
-    addToHistory(call.peer, "disconnected");
-    notifyUserDisconnected(call.peer);
-});
-
-   call.on("stream", (remoteStream) => {
-    const audio = new Audio();
-
-    audio.srcObject = remoteStream;
-    audio.autoplay = true;
-    audio.volume = 1;
-
-    remoteAudio[call.peer] = audio;
-
-    audio.play();
-});
-});
+}
 
 function setStatus(status) {
     myStatus = status;
@@ -321,11 +283,11 @@ function unblockUser(peerId) {
 }
 
 function getBlockedUsers() {
-    return blockedUsers;
+    return [...blockedUsers];
 }
 
 function getCallRecords() {
-    return callRecords;
+    return [...callRecords];
 }
 
 function setUserVolume(peerId, volume) {
@@ -339,19 +301,23 @@ function setUserVolume(peerId, volume) {
 }
 
 function setMyVolume(volume) {
-    if (!localStream) return;
+    if (!localStream) {
+        return;
+    }
+
+    const enabled = volume > 0;
 
     localStream.getAudioTracks().forEach(track => {
-        track.enabled = volume > 0;
+        track.enabled = enabled;
     });
 }
 
 function getConnectedUsers() {
-    return connectedUsers;
+    return [...connectedUsers];
 }
 
 function getConnectionHistory() {
-    return connectionHistory;
+    return [...connectionHistory];
 }
 
 function getConnectionQuality(peerId) {
@@ -382,19 +348,25 @@ function getStats() {
 }
 
 function onUserConnected(callback) {
-    userConnectedCallbacks.push(callback);
+    if (typeof callback === "function") {
+        userConnectedCallbacks.push(callback);
+    }
 }
 
 function onUserDisconnected(callback) {
-    userDisconnectedCallbacks.push(callback);
+    if (typeof callback === "function") {
+        userDisconnectedCallbacks.push(callback);
+    }
 }
 
 window.EchoLink = {
     version: "1.0.0",
 
-    connect: () => connectBtn.click(),
+    connect() {
+        connectBtn.click();
+    },
 
-    callUser: (peerId) => {
+    callUser(peerId) {
         targetPeerIdInput.value = peerId;
         callBtn.click();
     },
@@ -421,4 +393,4 @@ window.EchoLink = {
     setMyVolume
 };
 
-console.log(`EchoLink v${EchoLink.version} loaded`);
+console.log(`EchoLink v${window.EchoLink.version} loaded`);
