@@ -1,5 +1,5 @@
-let peer;
-let localStream;
+let peer = null;
+let localStream = null;
 let myStatus = "Online";
 
 const connectedUsers = [];
@@ -32,19 +32,16 @@ async function setupMicrophone() {
     } catch (error) {
         statusText.textContent = "Microphone access denied";
         console.error("Microphone access denied", error);
+        return null;
     }
 }
 
 function notifyUserConnected(peerId) {
-    userConnectedCallbacks.forEach(callback => {
-        callback(peerId);
-    });
+    userConnectedCallbacks.forEach(callback => callback(peerId));
 }
 
 function notifyUserDisconnected(peerId) {
-    userDisconnectedCallbacks.forEach(callback => {
-        callback(peerId);
-    });
+    userDisconnectedCallbacks.forEach(callback => callback(peerId));
 }
 
 function addToHistory(peerId, type) {
@@ -79,20 +76,6 @@ function startCallRecord(peerId) {
     });
 }
 
-function endCallRecord(peerId) {
-    const record = [...callRecords]
-        .reverse()
-        .find(r => r.peerId === peerId && !r.endedAt);
-
-    if (!record) return;
-
-    record.endedAt = new Date().toISOString();
-
-    record.duration = Math.floor(
-        (new Date(record.endedAt) - new Date(record.startedAt)) / 1000
-    );
-}
-
 function initializePeer() {
     peer = new Peer(peerIdInput.value);
 
@@ -123,6 +106,7 @@ function initializePeer() {
     });
 
     peer.on("call", (call) => {
+
         if (blockedUsers.includes(call.peer)) {
             call.close();
             return;
@@ -144,7 +128,20 @@ function initializePeer() {
         addToHistory(call.peer, "connected");
         notifyUserConnected(call.peer);
 
+        call.on("stream", (remoteStream) => {
+            const audio = new Audio();
+
+            audio.srcObject = remoteStream;
+            audio.autoplay = true;
+            audio.volume = 1;
+
+            remoteAudio[call.peer] = audio;
+
+            audio.play();
+        });
+
         call.on("close", () => {
+
             const index = connectedUsers.findIndex(
                 user => user.peerId === call.peer
             );
@@ -153,11 +150,24 @@ function initializePeer() {
                 connectedUsers.splice(index, 1);
             }
 
-            delete connectionTimes[call.peer];
             if (remoteAudio[call.peer]) {
-    remoteAudio[call.peer].pause();
-    remoteAudio[call.peer].srcObject = null;
-    delete remoteAudio[call.peer];
+                remoteAudio[call.peer].pause();
+                remoteAudio[call.peer].srcObject = null;
+                delete remoteAudio[call.peer];
+            }
+
+            delete connectionTimes[call.peer];
+            delete connectionQuality[call.peer];
+
+            updatePresence(call.peer, "Offline");
+
+            endCallRecord(call.peer);
+
+            addToHistory(call.peer, "disconnected");
+
+            notifyUserDisconnected(call.peer);
+        });
+    });
 }
             
             delete connectionQuality[call.peer];
